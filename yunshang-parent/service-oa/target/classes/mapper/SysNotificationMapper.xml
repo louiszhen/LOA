@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yunshang.process.mapper.SysNotificationMapper">
+
+    <resultMap id="BaseResultMap" type="com.yunshang.model.system.SysNotification">
+        <id column="id" property="id" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="is_deleted" property="isDeleted" />
+        <result column="type" property="type" />
+        <result column="title" property="title" />
+        <result column="content" property="content" />
+        <result column="process_id" property="processId" />
+        <result column="task_id" property="taskId" />
+        <result column="user_id" property="userId" />
+        <result column="status" property="status" />
+        <result column="extra_data" property="extraData" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, create_time, update_time, is_deleted,
+        type, title, content, process_id, task_id, user_id, status, extra_data
+    </sql>
+
+</mapper>

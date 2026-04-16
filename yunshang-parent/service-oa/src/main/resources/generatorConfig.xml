@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+    <!-- 
+        MyBatis Generator 配置文件
+        使用方式: 在 yunshang-parent 目录下执行 mvn mybatis-generator:generate
+        或者在 IDEA 中 Maven 插件中运行 mybatis-generator:generate
+    -->
+    
+    <!-- 
+        targetRuntime 说明:
+        - MyBatis3: 生成 Example 类 (默认，不推荐)
+        - MyBatis3Simple: 不生成 Example 类，只生成基本 CRUD 方法 (推荐使用)
+        - MyBatisDynamicSQL: 使用动态 SQL 功能
+        
+        当前使用 MyBatis3Simple 模式，已禁用 Example 功能
+    -->
+    <context id="DB2Tables" targetRuntime="MyBatis3Simple">
+        <!-- 生成的 Java 文件编码 -->
+        <property name="javaFileEncoding" value="UTF-8"/>
+        
+        <!-- 格式化 Java 代码 -->
+        <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter"/>
+        
+        <!-- 格式化 XML 代码 -->
+        <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter"/>
+        
+        <!-- 禁用 annotation，只使用 XML 配置 -->
+        <property name="useActualColumnNames" value="false"/>
+
+        <!-- 数据库连接配置 -->
+        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
+                        connectionURL="jdbc:mysql://localhost:3306/yunshang-oa?serverTimezone=Asia/Shanghai&amp;characterEncoding=utf-8"
+                        userId="root"
+                        password="root">
+            <!-- 解决 MySQL 8.0 驱动生成其他数据库表的问题 -->
+            <property name="nullCatalogMeansCurrent" value="true"/>
+        </jdbcConnection>
+
+        <!-- Java 类型处理器 -->
+        <javaTypeResolver>
+            <property name="forceBigDecimals" value="false"/>
+        </javaTypeResolver>
+
+        <!-- 实体类生成配置 (生成到 model 模块) -->
+        <javaModelGenerator targetPackage="com.yunshang.model.system" 
+                            targetProject="../model/src/main/java">
+            <property name="enableSubPackages" value="true"/>
+            <property name="trimStrings" value="true"/>
+        </javaModelGenerator>
+
+        <!-- Mapper XML 文件生成配置 -->
+        <sqlMapGenerator targetPackage="mapper" 
+                         targetProject="src/main/resources">
+            <property name="enableSubPackages" value="true"/>
+        </sqlMapGenerator>
+
+        <!-- Mapper 接口生成配置 -->
+        <javaClientGenerator type="XMLMAPPER" 
+                             targetPackage="com.yunshang.auth.mapper" 
+                             targetProject="src/main/java">
+            <property name="enableSubPackages" value="true"/>
+        </javaClientGenerator>
+        
+        <!-- 
+            表配置说明:
+            tableName: 数据库表名
+            domainObjectName: 生成的实体类名
+            mapperName: 生成的 Mapper 接口名
+            
+            可选配置属性:
+            - enableCountByExample: false (禁用 countByExample 方法)
+            - enableDeleteByExample: false (禁用 deleteByExample 方法)
+            - enableSelectByExample: false (禁用 selectByExample 方法)
+            - enableUpdateByExample: false (禁用 updateByExample 方法)
+            注意：MyBatis3Simple 模式下这些属性默认就是 false
+        -->
+
+        <table tableName="bnt_meeting" domainObjectName="SysMeeting" mapperName="SysMeetingMapper"
+                       enableCountByExample="false" enableDeleteByExample="false"
+                       enableSelectByExample="false" enableUpdateByExample="false"
+                       selectByExampleQueryId="false"/>
+        <!-- 
+        <table tableName="sys_user" domainObjectName="SysUser" mapperName="SysUserMapper"/>
+        <table tableName="sys_role" domainObjectName="SysRole" mapperName="SysRoleMapper"/>
+        <table tableName="sys_menu" domainObjectName="SysMenu" mapperName="SysMenuMapper"/>
+        <table tableName="sys_dept" domainObjectName="SysDept" mapperName="SysDeptMapper"/>
+        <table tableName="sys_post" domainObjectName="SysPost" mapperName="SysPostMapper"/>
+        <table tableName="sys_user_role" domainObjectName="SysUserRole" mapperName="SysUserRoleMapper"/>
+        <table tableName="sys_role_menu" domainObjectName="SysRoleMenu" mapperName="SysRoleMenuMapper"/>
+        <table tableName="sys_oper_log" domainObjectName="SysOperLog" mapperName="SysOperLogMapper"/>
+        <table tableName="sys_login_log" domainObjectName="SysLoginLog" mapperName="SysLoginLogMapper"/>
+        <table tableName="sys_meeting_room" domainObjectName="SysMeetingRoom" mapperName="SysMeetingRoomMapper"/>
+        -->
+        
+    </context>
+</generatorConfiguration>

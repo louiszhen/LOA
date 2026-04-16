@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yunshang.auth.mapper.attendance.SysAttendanceRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.yunshang.model.attendance.SysAttendanceRecord">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="user_name" property="userName"/>
+        <result column="clock_date" property="clockDate"/>
+        <result column="clock_type" property="clockType"/>
+        <result column="clock_time" property="clockTime"/>
+        <result column="status" property="status"/>
+        <result column="status_desc" property="statusDesc"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_deleted" property="isDeleted"/>
+    </resultMap>
+
+    <select id="selectRecordList" resultMap="BaseResultMap">
+        SELECT * FROM sys_attendance_record
+        WHERE is_deleted = 0
+        <if test="queryVo.startDate != null and queryVo.startDate != ''">
+            AND clock_date >= #{queryVo.startDate}
+        </if>
+        <if test="queryVo.endDate != null and queryVo.endDate != ''">
+            AND clock_date &lt;= #{queryVo.endDate}
+        </if>
+        <if test="queryVo.clockType != null and queryVo.clockType != ''">
+            AND clock_type = #{queryVo.clockType}
+        </if>
+        <if test="queryVo.status != null and queryVo.status != ''">
+            AND status = #{queryVo.status}
+        </if>
+        <if test="queryVo.userId != null">
+            AND user_id = #{queryVo.userId}
+        </if>
+        <if test="queryVo.userName != null and queryVo.userName != ''">
+            AND user_name LIKE CONCAT('%', #{queryVo.userName}, '%')
+        </if>
+        ORDER BY clock_date DESC, clock_type ASC
+    </select>
+
+    <!--
+        分页查询打卡记录列表
+        SQL 与 selectRecordList 相同，MyBatis-Plus 分页拦截器自动处理 COUNT + LIMIT
+    -->
+    <select id="selectRecordPage" resultMap="BaseResultMap">
+        SELECT * FROM sys_attendance_record
+        WHERE is_deleted = 0
+        <if test="queryVo.startDate != null and queryVo.startDate != ''">
+            AND clock_date >= #{queryVo.startDate}
+        </if>
+        <if test="queryVo.endDate != null and queryVo.endDate != ''">
+            AND clock_date &lt;= #{queryVo.endDate}
+        </if>
+        <if test="queryVo.clockType != null and queryVo.clockType != ''">
+            AND clock_type = #{queryVo.clockType}
+        </if>
+        <if test="queryVo.status != null and queryVo.status != ''">
+            AND status = #{queryVo.status}
+        </if>
+        <if test="queryVo.userId != null">
+            AND user_id = #{queryVo.userId}
+        </if>
+        <if test="queryVo.userName != null and queryVo.userName != ''">
+            AND user_name LIKE CONCAT('%', #{queryVo.userName}, '%')
+        </if>
+        ORDER BY clock_date DESC, clock_type ASC
+    </select>
+
+    <select id="checkAlreadyClocked" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM sys_attendance_record
+        WHERE is_deleted = 0
+        AND user_id = #{userId}
+        AND clock_date = #{clockDate}
+        AND clock_type = #{clockType}
+    </select>
+
+    <!--
+        批量插入打卡明细记录
+        使用 VALUES (多行) 语法，一次 IO 完成多条写入
+    -->
+    <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_attendance_record
+            (user_id, user_name, clock_date, clock_type, clock_time,
+             status, status_desc, remark, create_time, update_time, is_deleted)
+        VALUES
+        <foreach collection="records" item="r" separator=",">
+            (#{r.userId}, #{r.userName}, #{r.clockDate}, #{r.clockType}, #{r.clockTime},
+             #{r.status}, #{r.statusDesc}, #{r.remark}, #{r.createTime}, #{r.updateTime}, #{r.isDeleted})
+        </foreach>
+    </insert>
+
+</mapper>

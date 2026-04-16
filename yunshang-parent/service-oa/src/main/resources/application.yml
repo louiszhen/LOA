@@ -1,0 +1,5 @@
+spring:
+  application:
+    name: yunshang-service-oa
+  profiles:
+    active: dev
