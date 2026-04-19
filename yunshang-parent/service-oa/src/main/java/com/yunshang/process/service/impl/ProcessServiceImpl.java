@@ -540,88 +540,91 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessMapper, Process> impl
         Long total = query().count();
         List<ProcessVo> processVoList = new ArrayList<>();
         for (Task task : taskList) {
-            // 从task获取流程实例id
-            String processInstanceId = task.getProcessInstanceId();
-            // 根据流程实例id获取实例对象
-            ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
-                    .processInstanceId(processInstanceId)
-                    .singleResult();
-            // 兼容流程已结束的情况：从流程历史中获取businessKey
-            if (processInstance == null) {
-                HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
-                        .processInstanceId(processInstanceId)
-                        .singleResult();
-                if (historicProcessInstance == null) {
-                    log.warn("无法获取流程实例信息，跳过任务，taskId: {}", task.getId());
-                    continue;
-                }
-                String businessKey = historicProcessInstance.getBusinessKey();
-                if (businessKey == null) {
-                    log.warn("流程实例businessKey为空，跳过任务，taskId: {}", task.getId());
-                    continue;
-                }
-                Process process = baseMapper.selectById(Long.valueOf(businessKey));
-                if (process == null) {
-                    log.warn("无法找到对应的流程记录，跳过任务，taskId: {}, businessKey: {}", task.getId(), businessKey);
-                    continue;
-                }
-                ProcessVo processVo = new ProcessVo();
-                BeanUtils.copyProperties(process, processVo);
-                processVo.setTaskId(task.getId());
-                // 填充申请人姓名
-                if (process.getUserId() != null) {
-                    SysUser user = sysUserService.getById(process.getUserId());
-                    if (user != null) {
-                        processVo.setName(user.getName());
-                    }
-                }
-                // 填充类型名称
-                if (process.getProcessTypeId() != null) {
-                    ProcessType processType = processTypeService.getById(process.getProcessTypeId());
-                    if (processType != null) {
-                        processVo.setProcessTypeName(processType.getName());
-                    }
-                }
+            ProcessVo processVo = getProcessVoByTask(task);
+            if (processVo != null) {
                 processVoList.add(processVo);
-                continue;
             }
-            // 从流程实例中获取业务key，即processId
-            String processId = processInstance.getBusinessKey();
-            if (processId == null) {
-                log.warn("流程实例businessKey为空，跳过任务，taskId: {}", task.getId());
-                continue;
-            }
-            // 根据业务key获取Process对象
-            Process process = baseMapper.selectById(Long.valueOf(processId));
-            if (process == null) {
-                log.warn("无法找到对应的流程记录，跳过任务，taskId: {}, businessKey: {}", task.getId(), processId);
-                continue;
-            }
-            // Process --> ProcessVo
-            ProcessVo processVo = new ProcessVo();
-            BeanUtils.copyProperties(process, processVo);
-            processVo.setTaskId(task.getId());
-            // 填充申请人姓名
-            if (process.getUserId() != null) {
-                SysUser user = sysUserService.getById(process.getUserId());
-                if (user != null) {
-                    processVo.setName(user.getName());
-                }
-            }
-            // 填充类型名称
-            if (process.getProcessTypeId() != null) {
-                ProcessType processType = processTypeService.getById(process.getProcessTypeId());
-                if (processType != null) {
-                    processVo.setProcessTypeName(processType.getName());
-                }
-            }
-            processVoList.add(processVo);
         }
 
         // 封装返回IPage对象
         IPage<ProcessVo> page = new Page<>(pageParam.getCurrent(), pageParam.getSize(), total);
         page.setRecords(processVoList);
         return page;
+    }
+
+    /**
+     * 根据Task对象获取ProcessVo（与findPending接口返回字段一致）
+     */
+    private ProcessVo getProcessVoByTask(Task task) {
+        if (task == null) {
+            return null;
+        }
+        // 从task获取流程实例id
+        String processInstanceId = task.getProcessInstanceId();
+        // 根据流程实例id获取实例对象
+        ProcessInstance processInstance = runtimeService.createProcessInstanceQuery()
+                .processInstanceId(processInstanceId)
+                .singleResult();
+        // 兼容流程已结束的情况：从流程历史中获取businessKey
+        if (processInstance == null) {
+            HistoricProcessInstance historicProcessInstance = historyService.createHistoricProcessInstanceQuery()
+                    .processInstanceId(processInstanceId)
+                    .singleResult();
+            if (historicProcessInstance == null) {
+                log.warn("无法获取流程实例信息，跳过任务，taskId: {}", task.getId());
+                return null;
+            }
+            String businessKey = historicProcessInstance.getBusinessKey();
+            if (businessKey == null) {
+                log.warn("流程实例businessKey为空，跳过任务，taskId: {}", task.getId());
+                return null;
+            }
+            Process process = baseMapper.selectById(Long.valueOf(businessKey));
+            if (process == null) {
+                log.warn("无法找到对应的流程记录，跳过任务，taskId: {}, businessKey: {}", task.getId(), businessKey);
+                return null;
+            }
+            return buildProcessVo(process, task.getId());
+        }
+        // 从流程实例中获取业务key，即processId
+        String processId = processInstance.getBusinessKey();
+        if (processId == null) {
+            log.warn("流程实例businessKey为空，跳过任务，taskId: {}", task.getId());
+            return null;
+        }
+        // 根据业务key获取Process对象
+        Process process = baseMapper.selectById(Long.valueOf(processId));
+        if (process == null) {
+            log.warn("无法找到对应的流程记录，跳过任务，taskId: {}, businessKey: {}", task.getId(), processId);
+            return null;
+        }
+        return buildProcessVo(process, task.getId());
+    }
+
+    @Override
+    public ProcessVo buildProcessVo(Process process, String taskId) {
+        if (process == null) {
+            return null;
+        }
+        // Process --> ProcessVo
+        ProcessVo processVo = new ProcessVo();
+        BeanUtils.copyProperties(process, processVo);
+        processVo.setTaskId(taskId);
+        // 填充申请人姓名
+        if (process.getUserId() != null) {
+            SysUser user = sysUserService.getById(process.getUserId());
+            if (user != null) {
+                processVo.setName(user.getName());
+            }
+        }
+        // 填充类型名称
+        if (process.getProcessTypeId() != null) {
+            ProcessType processType = processTypeService.getById(process.getProcessTypeId());
+            if (processType != null) {
+                processVo.setProcessTypeName(processType.getName());
+            }
+        }
+        return processVo;
     }
 
     @Override

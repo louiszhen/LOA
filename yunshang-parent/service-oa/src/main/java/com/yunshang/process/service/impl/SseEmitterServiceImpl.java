@@ -28,6 +28,9 @@ public class SseEmitterServiceImpl implements SseEmitterService {
     /** 用户SSE连接Map，key为userId */
     private static final Map<Long, SseEmitter> USER_EMITTER_MAP = new ConcurrentHashMap<>();
 
+    /** 待审核列表专用SSE连接Map，key为userId */
+    private static final Map<Long, SseEmitter> PENDING_EMITTER_MAP = new ConcurrentHashMap<>();
+
     @Override
     public SseEmitter connect(Long userId) {
         // 如果用户已存在连接，先关闭旧连接
@@ -186,5 +189,97 @@ public class SseEmitterServiceImpl implements SseEmitterService {
         if (!USER_EMITTER_MAP.isEmpty()) {
             log.info("SSE心跳轮次完成，当前在线用户数: {}", USER_EMITTER_MAP.size());
         }
+    }
+
+    @Override
+    public SseEmitter connectPending(Long userId) {
+        // 如果用户已存在待审核连接，先关闭旧连接
+        SseEmitter oldEmitter = PENDING_EMITTER_MAP.get(userId);
+        if (oldEmitter != null) {
+            try {
+                oldEmitter.complete();
+            } catch (Exception e) {
+                log.warn("关闭旧待审核SSE连接时发生异常，userId: {}", userId);
+            }
+            PENDING_EMITTER_MAP.remove(userId);
+        }
+
+        // 创建新的待审核专用SSE连接
+        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
+
+        // 设置回调
+        emitter.onCompletion(() -> {
+            log.info("待审核SSE连接完成，userId: {}", userId);
+            PENDING_EMITTER_MAP.remove(userId);
+        });
+
+        emitter.onTimeout(() -> {
+            log.info("待审核SSE连接超时，userId: {}", userId);
+            PENDING_EMITTER_MAP.remove(userId);
+        });
+
+        emitter.onError(e -> {
+            log.error("待审核SSE连接异常，userId: {}, error: {}", userId, e.getMessage());
+            PENDING_EMITTER_MAP.remove(userId);
+        });
+
+        // 保存连接
+        PENDING_EMITTER_MAP.put(userId, emitter);
+        log.info("待审核SSE连接已建立，userId: {}, 当前订阅待审核用户数: {}", userId, PENDING_EMITTER_MAP.size());
+
+        try {
+            // 发送初始连接成功消息
+            emitter.send(SseEmitter.event()
+                    .name("pending_connected")
+                    .data("待审核列表订阅成功"));
+        } catch (IOException e) {
+            log.error("发送待审核SSE初始消息失败，userId: {}", userId, e);
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
+    }
+
+    @Override
+    public void sendNewPendingToUser(Long userId, Object processVo) {
+        SseEmitter emitter = PENDING_EMITTER_MAP.get(userId);
+        if (emitter == null) {
+            log.debug("用户未建立待审核SSE连接，跳过推送，userId: {}", userId);
+            return;
+        }
+
+        try {
+            // 构建推送数据结构，与findPending接口返回的ProcessVo字段完全一致
+            Map<String, Object> pushData = new HashMap<>();
+            pushData.put("type", "new_pending");
+            pushData.put("data", processVo);
+            pushData.put("timestamp", System.currentTimeMillis());
+
+            String jsonMessage = JSON.toJSONString(pushData);
+            emitter.send(SseEmitter.event()
+                    .name("new_pending")
+                    .data(jsonMessage, MediaType.APPLICATION_JSON));
+            log.info("SSE新待审核推送成功，userId: {}, processId: {}", userId, 
+                    processVo != null ? getProcessIdFromVo(processVo) : "null");
+        } catch (IOException e) {
+            log.error("SSE新待审核推送失败，userId: {}", userId, e);
+            // 移除失效连接
+            PENDING_EMITTER_MAP.remove(userId);
+            try {
+                emitter.completeWithError(e);
+            } catch (Exception ex) {
+                log.error("SSE连接完成时发生异常，userId: {}", userId, ex);
+            }
+        }
+    }
+
+    /**
+     * 从ProcessVo中提取processId用于日志
+     */
+    private Object getProcessIdFromVo(Object processVo) {
+        if (processVo instanceof Map) {
+            return ((Map<?, ?>) processVo).get("id");
+        }
+        return "unknown";
     }
 }

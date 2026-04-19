@@ -8,6 +8,7 @@ import com.yunshang.model.system.SysUser;
 import com.yunshang.process.service.ProcessService;
 import com.yunshang.process.service.SseEmitterService;
 import com.yunshang.process.service.SysNotificationService;
+import com.yunshang.vo.process.ProcessVo;
 import lombok.extern.slf4j.Slf4j;
 import org.activiti.engine.delegate.DelegateTask;
 import org.activiti.engine.delegate.TaskListener;
@@ -148,11 +149,19 @@ public class TaskCreateListener implements TaskListener {
                     extraDataJson
             );
 
-            // 通过SSE实时推送给用户
+            // 通过SSE实时推送给用户（通知消息）
             Map<String, Object> pushData = new HashMap<>();
             pushData.put("type", "notification");
             pushData.put("notification", notification);
             sseEmitterService.sendNotificationToUser(assigneeUserId, pushData);
+
+            // 通过SSE推送完整的ProcessVo（与findPending接口返回字段一致，供待审核列表增量更新使用）
+            ProcessVo processVo = processService.buildProcessVo(
+                    processService.getById(processId), taskId);
+            if (processVo != null) {
+                sseEmitterService.sendNewPendingToUser(assigneeUserId, processVo);
+                log.info("待审核ProcessVo已推送，processId: {}, assigneeUserId: {}", processId, assigneeUserId);
+            }
 
             log.info("任务创建通知已发送，notificationId: {}, assigneeUserId: {}", 
                     notification.getId(), assigneeUserId);

@@ -7,11 +7,14 @@ import com.yunshang.model.process.ProcessTemplate;
 import com.yunshang.process.service.ProcessService;
 import com.yunshang.process.service.ProcessTemplateService;
 import com.yunshang.process.service.ProcessTypeService;
+import com.yunshang.process.service.SseEmitterService;
+import com.yunshang.security.custom.LoginUserInfoHelper;
 import com.yunshang.vo.process.ApprovalVo;
 import com.yunshang.vo.process.ProcessFormVo;
 import com.yunshang.vo.process.ProcessVo;
 //import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
 
@@ -34,6 +37,9 @@ public class ProcessApiController {
 
     @Resource
     private ProcessService processService;
+
+    @Resource
+    private SseEmitterService sseEmitterService;
 
     /**
      * 获取全部审批分类及模版
@@ -119,5 +125,16 @@ public class ProcessApiController {
     @GetMapping("/flowProgress/{processId}")
     public Result getFlowProgress(@PathVariable Long processId) {
         return Result.ok(processService.getFlowProgress(processId));
+    }
+
+    /**
+     * 建立待审核列表SSE连接（增量式推送）
+     * 前端登录后调用此接口建立SSE长连接，用于接收实时的新待审核任务推送
+     * 推送的ProcessVo数据结构与/admin/process/findPending/{page}/{limit}接口返回完全一致
+     */
+    @GetMapping("/subscribePending")
+    public SseEmitter subscribePending() {
+        Long userId = LoginUserInfoHelper.getUserId();
+        return sseEmitterService.connectPending(userId);
     }
 }

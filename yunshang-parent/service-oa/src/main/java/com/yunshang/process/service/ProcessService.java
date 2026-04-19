@@ -84,4 +84,14 @@ public interface ProcessService extends IService<Process> {
      * @return 流程实例对象，如果不存在返回null
      */
     org.activiti.engine.runtime.ProcessInstance getProcessInstanceById(String processInstanceId);
+
+    /**
+     * 根据Process对象和taskId构建ProcessVo（与findPending接口返回字段一致）
+     * 用于SSE实时推送时保证数据结构一致
+     *
+     * @param process 流程记录对象
+     * @param taskId  当前任务ID
+     * @return ProcessVo对象
+     */
+    ProcessVo buildProcessVo(Process process, String taskId);
 }

@@ -59,4 +59,22 @@ public interface SseEmitterService {
      * 发送心跳给所有在线用户
      */
     void sendHeartbeat();
+
+    /**
+     * 建立待审核列表专用SSE连接
+     * 与普通connect不同，此连接专门用于接收待审核列表的增量更新
+     *
+     * @param userId 用户ID
+     * @return SseEmitter对象
+     */
+    SseEmitter connectPending(Long userId);
+
+    /**
+     * 推送新的待审核任务给指定用户
+     * 推送的ProcessVo与/admin/process/findPending/{page}/{limit}接口返回字段完全一致
+     *
+     * @param userId     用户ID
+     * @param processVo  待审核任务数据（ProcessVo对象）
+     */
+    void sendNewPendingToUser(Long userId, Object processVo);
 }
