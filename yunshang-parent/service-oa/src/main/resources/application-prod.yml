@@ -44,3 +44,4 @@ wechat:
   mp-app-secret: 352b5098c866ad6697b7e1d6f1183d8b
   # 授权回调获取用户信息接口地址（需修改为公网可访问的地址）
   user-info-url: http://120.55.53.29:8801/admin/wechat/userInfo
+  #这里也改到一半
