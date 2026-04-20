@@ -37,15 +37,14 @@ public class TaskCreateListener implements TaskListener {
         try {
             String taskId = delegateTask.getId();
             String assignee = delegateTask.getAssignee();
-            String processInstanceId = delegateTask.getProcessInstanceId();
 
             // 跳过无处理人任务
             if (assignee == null || assignee.isEmpty()) {
                 return;
             }
 
-            // 获取processId
-            Long processId = getProcessId(processInstanceId);
+            // 获取processId（从流程变量中获取businessKey）
+            Long processId = getProcessId(delegateTask);
             if (processId == null) {
                 return;
             }
@@ -67,18 +66,20 @@ public class TaskCreateListener implements TaskListener {
         }
     }
 
-    private Long getProcessId(String processInstanceId) {
-        if (processInstanceId == null) {
+    private Long getProcessId(DelegateTask delegateTask) {
+        if (delegateTask.getExecution() == null) {
             return null;
         }
-        org.activiti.engine.runtime.ProcessInstance processInstance = 
-                processService.getProcessInstanceById(processInstanceId);
-        if (processInstance == null || processInstance.getBusinessKey() == null) {
+        // 流程启动时通过 map.put("_processId", process.getId()) 注入
+        Object processIdObj = delegateTask.getExecution().getVariable("_processId");
+        if (processIdObj == null) {
+            log.warn("流程变量_processId为空，跳过，taskId: {}", delegateTask.getId());
             return null;
         }
         try {
-            return Long.parseLong(processInstance.getBusinessKey());
+            return Long.parseLong(processIdObj.toString());
         } catch (NumberFormatException e) {
+            log.warn("_processId格式错误: {}", processIdObj);
             return null;
         }
     }

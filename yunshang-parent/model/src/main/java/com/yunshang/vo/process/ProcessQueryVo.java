@@ -17,6 +17,16 @@ public class ProcessQueryVo {
     private Long userId;
 
     /**
+     * 申请人姓名（精确匹配）
+     */
+    private String userName;
+
+    /**
+     * 标题（模糊查询）
+     */
+    private String title;
+
+    /**
      * 对应的流程模版id
      */
     @TableField("process_template_id")

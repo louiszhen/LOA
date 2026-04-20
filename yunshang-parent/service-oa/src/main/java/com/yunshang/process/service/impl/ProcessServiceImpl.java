@@ -528,20 +528,21 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessMapper, Process> impl
     }
 
     @Override
-    public IPage<ProcessVo> findPending(Page<Process> pageParam) {
-        // 封装查询条件
+    public IPage<ProcessVo> findPending(Page<Process> pageParam, ProcessQueryVo queryVo) {
+        // 封装查询条件：仅查询当前用户待处理的任务
         TaskQuery taskQuery = taskService.createTaskQuery().taskAssignee(LoginUserInfoHelper.getUsername())
                 .orderByTaskCreateTime().desc();
-        // 分页查询
+
+        // 分页查询当前用户的待办任务
         List<Task> taskList = taskQuery
                 .listPage((int) ((pageParam.getCurrent() - 1) * pageParam.getSize()), (int) (pageParam.getSize()));
 
-        // List<Task> --> List<ProcessVo>
+        // 转换为 ProcessVo 并应用内存过滤条件
         Long total = query().count();
         List<ProcessVo> processVoList = new ArrayList<>();
         for (Task task : taskList) {
             ProcessVo processVo = getProcessVoByTask(task);
-            if (processVo != null) {
+            if (processVo != null && matchesQueryVo(processVo, queryVo)) {
                 processVoList.add(processVo);
             }
         }
@@ -550,6 +551,34 @@ public class ProcessServiceImpl extends ServiceImpl<ProcessMapper, Process> impl
         IPage<ProcessVo> page = new Page<>(pageParam.getCurrent(), pageParam.getSize(), total);
         page.setRecords(processVoList);
         return page;
+    }
+
+    /**
+     * 判断 ProcessVo 是否匹配查询条件
+     */
+    private boolean matchesQueryVo(ProcessVo processVo, ProcessQueryVo queryVo) {
+        if (queryVo == null) {
+            return true;
+        }
+        // 标题模糊匹配
+        if (queryVo.getTitle() != null && !queryVo.getTitle().isEmpty()) {
+            if (processVo.getTitle() == null || !processVo.getTitle().contains(queryVo.getTitle())) {
+                return false;
+            }
+        }
+        // 审批类型精确匹配
+        if (queryVo.getProcessTypeId() != null) {
+            if (processVo.getProcessTypeId() == null || !processVo.getProcessTypeId().equals(queryVo.getProcessTypeId())) {
+                return false;
+            }
+        }
+        // 申请人姓名精确匹配
+        if (queryVo.getUserName() != null && !queryVo.getUserName().isEmpty()) {
+            if (processVo.getName() == null || !processVo.getName().equals(queryVo.getUserName())) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

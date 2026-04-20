@@ -11,6 +11,7 @@ import com.yunshang.process.service.SseEmitterService;
 import com.yunshang.security.custom.LoginUserInfoHelper;
 import com.yunshang.vo.process.ApprovalVo;
 import com.yunshang.vo.process.ProcessFormVo;
+import com.yunshang.vo.process.ProcessQueryVo;
 import com.yunshang.vo.process.ProcessVo;
 //import me.chanjar.weixin.common.error.WxErrorException;
 import org.springframework.web.bind.annotation.*;
@@ -77,11 +78,26 @@ public class ProcessApiController {
 
     /**
      * 查询待处理任务
+     * @param page 页码
+     * @param limit 每页数量
+     * @param title 标题（模糊查询）
+     * @param processTypeId 审批类型ID
+     * @param userName 申请人姓名
+     * @return 待处理任务分页列表
      */
     @GetMapping("/findPending/{page}/{limit}")
-    public Result findPending(@PathVariable Long page, @PathVariable Long limit) {
+    public Result findPending(
+            @PathVariable Long page,
+            @PathVariable Long limit,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Long processTypeId,
+            @RequestParam(required = false) String userName) {
         Page<Process> pageParam = new Page<>(page, limit);
-        return Result.ok(processService.findPending(pageParam));
+        ProcessQueryVo queryVo = new ProcessQueryVo();
+        queryVo.setTitle(title);
+        queryVo.setProcessTypeId(processTypeId);
+        queryVo.setUserName(userName);
+        return Result.ok(processService.findPending(pageParam, queryVo));
     }
 
     /**

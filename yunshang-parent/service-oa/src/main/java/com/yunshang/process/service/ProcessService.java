@@ -37,9 +37,11 @@ public interface ProcessService extends IService<Process> {
     void startUp(ProcessFormVo processFormVo);
 
     /**
-     * 查询待处理任务
+     * 查询待处理任务（支持条件过滤）
+     * @param pageParam 分页参数
+     * @param queryVo 查询条件（标题、审批类型、申请人）
      */
-    IPage<ProcessVo> findPending(Page<Process> pageParam);
+    IPage<ProcessVo> findPending(Page<Process> pageParam, ProcessQueryVo queryVo);
 
     /**
      * 获取审批详情
